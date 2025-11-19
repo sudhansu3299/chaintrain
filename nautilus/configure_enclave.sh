@@ -42,6 +42,7 @@ if [ -z "$1" ]; then
     echo "Usage: ./configure_enclave.sh <APP>"
     echo "Example: ./configure_enclave.sh twitter-example"
     echo "Example: ./configure_enclave.sh weather-example"
+    echo "Example: ./configure_enclave.sh trainer"
     echo ""
     echo "For more information, run: ./configure_enclave.sh --help"
     exit 1
