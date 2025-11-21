@@ -9,6 +9,16 @@ ENCLAVE_CID=$(nitro-cli describe-enclaves | jq -r ".[0].EnclaveCID")
 
 sleep 5
 # Secrets-block
+SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id arn:aws:secretsmanager:eu-north-1:340640891884:secret:heloooo-fvzJnC --region eu-north-1 | jq -r .SecretString)
+echo "$SECRET_VALUE" | jq -R '{"API_KEY": .}' > secrets.json
+# No secrets: create empty secrets.json for compatibility
+# No secrets: create empty secrets.json for compatibility
+# No secrets: create empty secrets.json for compatibility
+# No secrets: create empty secrets.json for compatibility
+# No secrets: create empty secrets.json for compatibility
+# No secrets: create empty secrets.json for compatibility
+# No secrets: create empty secrets.json for compatibility
+# No secrets: create empty secrets.json for compatibility
 # This section will be populated by configure_enclave.sh based on secret configuration
 
 cat secrets.json | socat - VSOCK-CONNECT:$ENCLAVE_CID:7777
