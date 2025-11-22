@@ -1,0 +1,43 @@
+# Sahayak Environment Configuration
+# Environment
+ENVIRONMENT=development
+DEBUG=true
+LOG_LEVEL=INFO
+
+# Google Cloud
+GOOGLE_CLOUD_PROJECT=sahayak-ai-466508
+GOOGLE_APPLICATION_CREDENTIALS=.keys/sahayak_ai_gateway_creds.json
+
+# Firebase
+FIREBASE_PROJECT_ID=sahayak-ai-9519a
+FIREBASE_API_KEY=your-firebase-api-key
+FIRESTORE_CREDS=.keys/service-account-key.json
+
+# API Keys
+GEMINI_API_KEY=your-gemini-api-key
+WEATHER_API_KEY=your-weather-api-key
+
+# Database
+POSTGRES_DB=sahayak_gw_db
+POSTGRES_USER=sahayak_gw_user
+POSTGRES_PASSWORD=sahayak_gw_pass
+POSTGRES_SERVER=sahayak-db
+POSTGRES_PORT=5432
+
+DATABASE_URL=postgresql+psycopg2://sahayak_gw_user:sahayak_gw_pass@sahayak-db:5432/sahayak_gw_db
+REDIS_URL=redis://localhost:6379
+
+# Pub/Sub
+AGENT_INVOCATIONS_TOPIC=agent-invocations
+CROP_AGENT_SUBSCRIPTION=crop-agent-subscription
+
+# security
+JWT_SECRET_KEY=sahayak-server-jwt-secret
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Development
+HOST=0.0.0.0
+PORT=8050
+CROP_AGENT_PORT=8080

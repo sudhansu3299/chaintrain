@@ -1,23 +1,39 @@
 import { ReactNode } from "react";
+import { Sidebar } from "./Sidebar";
+import { SidebarProvider, SidebarTrigger } from "./ui/sidebar";
+import { WalletButton } from "./WalletButton";
+import { ThemeToggle } from "./ThemeToggle";
 
-type LayoutProps = {
+interface LayoutProps {
   children: ReactNode;
-};
+}
 
-export default function Layout({ children }: LayoutProps) {
+export function Layout({ children }: LayoutProps) {
   return (
-      <div className="layout-container">
-        <header className="layout-header">
-          <h2>Dataset Registry</h2>
-        </header>
-
-        <main className="layout-main">
-          {children}
-        </main>
-
-        <footer className="layout-footer">
-          <p>Powered by Sui • Nautilus • Walrus</p>
-        </footer>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10 flex items-center px-6 justify-between">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+                  <span className="text-lg font-bold text-primary-foreground">V</span>
+                </div>
+                <h1 className="text-xl font-bold gradient-text hidden md:block">Verifiable AI System</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <WalletButton />
+            </div>
+          </header>
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+        </div>
       </div>
+    </SidebarProvider>
   );
 }
