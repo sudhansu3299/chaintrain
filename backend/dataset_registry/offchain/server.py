@@ -306,7 +306,7 @@ async def train_model(
         # Return response to frontend
         return {
             'requestHash': request_hash,
-            'modelWeights': f"weights_{request_hash[:16]}.pt",
+            'modelWeights': f"llm-trained-v_{request_hash[:16]}.pt",
             'signature': signature,
             'datasetSource': dataset_source,
             'timestamp': training_record['timestamp_iso']
@@ -409,7 +409,7 @@ async def get_training_history():
             history.append({
                 'requestHash': request_hash,
                 'datasetSource': record['dataset_source'],
-                'modelWeights': f"weights_{request_hash[:16]}.pt",
+                'modelWeights': f"llm-trained-v_{request_hash[:16]}.pt",
                 'signature': record['signature'],
                 'timestamp': record['timestamp_iso']
             })
