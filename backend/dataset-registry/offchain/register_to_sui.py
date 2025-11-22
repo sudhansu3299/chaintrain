@@ -2,8 +2,6 @@ import json
 from config import SUI_PACKAGE_ID
 from pysui import SuiConfig, SyncClient
 from pysui.sui.sui_txn.transaction_builder import ProgrammableTransactionBuilder
-from pysui.sui.sui_types.scalars import SuiString
-
 
 
 def register_dataset(dataset_id, blob_id, merkle_root, zk_proof):
@@ -83,11 +81,11 @@ def register_dataset(dataset_id, blob_id, merkle_root, zk_proof):
   
   # Prepare arguments - all need to be hex strings with 0x prefix
   args = [
-   list(dataset_id),          # list[int]
-    list(blob_id_bytes),       # list[int]
-    list(merkle_root),         # list[int]
-    list(zk_proof),            # list[int]
-    list(b"nautilus-dummy"), 
+    dataset_id,            # bytes
+    blob_id_bytes,         # bytes
+    merkle_root,           # bytes
+    zk_proof,              # bytes
+    b"nautilus-dummy"
 ]
 
 
@@ -102,8 +100,6 @@ def register_dataset(dataset_id, blob_id, merkle_root, zk_proof):
 
     ptb.move_call(
         target=f"{SUI_PACKAGE_ID}::dataset_registry::register_dataset",
-        module="dataset_registry",
-        function="register_dataset",
         arguments=ptb_args,
         type_arguments=[]
     )
