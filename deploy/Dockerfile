@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install backend
 COPY backend/ ./backend
-COPY config.py ./config.py
+COPY ../backend/dataset-registry/offchain/config.py ./config.py
 RUN pip install -r backend/requirements.txt
 
 # Install frontend (build artifacts only)
