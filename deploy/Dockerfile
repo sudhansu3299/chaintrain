@@ -8,7 +8,7 @@ COPY config.py ./config.py
 RUN pip install -r backend/requirements.txt
 
 # Install frontend (build artifacts only)
-COPY frontend/build ./frontend/build
+COPY frontend/dist ./frontend/dist
 
 # Start script
 COPY deploy/start.sh ./start.sh
