@@ -1,88 +1,438 @@
-import { useQuery } from "@tanstack/react-query";
-import { getModels } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Brain, ExternalLink } from "lucide-react";
-import { StatusBadge } from "@/components/StatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatTimestamp } from "@/lib/api";
-import { motion } from "framer-motion";
+import React, { useState } from 'react';
+import { Upload, CheckCircle, XCircle, Shield, FileText, Key, Hash, Clock, Download } from 'lucide-react';
 
-export default function Models() {
-  const { data: models, isLoading } = useQuery({
-    queryKey: ["models"],
-    queryFn: getModels,
-  });
+export default function ModelProvenanceUI() {
+  const [activeTab, setActiveTab] = useState('train');
+  
+  // Training state
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [datasetFilePath, setDatasetFilePath] = useState('');
+  const [uploadMethod, setUploadMethod] = useState('upload'); // 'upload' or 'filepath'
+  const [trainingResponse, setTrainingResponse] = useState(null);
+  const [isTraining, setIsTraining] = useState(false);
+  
+  // Verification state
+  const [verifyDatasetPath, setVerifyDatasetPath] = useState('');
+  const [selectedModel, setSelectedModel] = useState(null);
+  const [verificationResult, setVerificationResult] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Recent training requests
+  const [recentRequests, setRecentRequests] = useState([]);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleTrain = async () => {
+    const datasetSource = uploadMethod === 'upload' ? selectedFile?.name : datasetFilePath;
+    
+    if (!datasetSource) {
+      alert('Please provide a dataset file or file path');
+      return;
+    }
+
+    setIsTraining(true);
+    
+    try {
+      const formData = new FormData();
+      if (uploadMethod === 'upload' && selectedFile) {
+        formData.append('dataset', selectedFile);
+      } else {
+        formData.append('datasetPath', datasetFilePath);
+      }
+      
+      // Call backend API
+      const response = await fetch('http://127.0.0.1:8000/api/train', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Training failed: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      setTrainingResponse(data);
+      
+      // Add to recent requests
+      setRecentRequests(prev => [data, ...prev].slice(0, 10)); // Keep last 10
+      
+    } catch (error) {
+      console.error('Training error:', error);
+      alert(`Training failed: ${error.message}`);
+    } finally {
+      setIsTraining(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!verifyDatasetPath || !selectedModel) {
+      alert('Please provide dataset path and select a model from recent requests');
+      return;
+    }
+
+    setIsVerifying(true);
+    
+    try {
+      // Call backend verification API
+      const response = await fetch('http://127.0.0.1:8000/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          datasetPath: verifyDatasetPath,
+          requestHash: selectedModel.requestHash
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Verification failed: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      setVerificationResult({
+        isValid: data.isValid,
+        requestHash: data.requestHash,
+        message: data.message
+      });
+      
+    } catch (error) {
+      console.error('Verification error:', error);
+      alert(`Verification failed: ${error.message}`);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const selectModelForVerification = (model) => {
+    setSelectedModel(model);
+    setVerifyDatasetPath(''); // Clear previous input
+    setVerificationResult(null); // Clear previous result
+  };
+
+  const formatTimestamp = (timestamp) => {
+    return new Date(timestamp).toLocaleString();
+  };
 
   return (
-    <div className="space-y-8">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-4xl font-bold mb-2">Model Registry</h1>
-        <p className="text-muted-foreground">
-          Browse AI models with verified training lineage
-        </p>
-      </motion.div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-64 rounded-xl" />
-          ))}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-4">
+            <Shield className="w-12 h-12 text-blue-400 mr-3" />
+            <h1 className="text-4xl font-bold">Model Provenance</h1>
+          </div>
+          <p className="text-slate-400 text-lg">Secure, verifiable model training with enclave attestation</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {models?.map((model) => (
-            <Card key={model.id} className="card-gradient border-border/50 hover:border-primary/50 transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-secondary/10 text-secondary">
-                      <Brain className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{model.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {model.dataset_ids.length} dataset(s)
+
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8">
+          <button
+            onClick={() => setActiveTab('train')}
+            className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+              activeTab === 'train'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            Train Model
+          </button>
+          <button
+            onClick={() => setActiveTab('verify')}
+            className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+              activeTab === 'verify'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            Verify Provenance
+          </button>
+        </div>
+
+        {/* Training Tab */}
+        {activeTab === 'train' && (
+          <div className="space-y-6">
+            <div className="bg-slate-800 rounded-xl p-8 shadow-xl">
+              <h2 className="text-2xl font-bold mb-6 flex items-center">
+                <Upload className="w-6 h-6 mr-2 text-blue-400" />
+                Upload Dataset & Train
+              </h2>
+              
+              {/* Upload Method Selection */}
+              <div className="flex gap-4 mb-6">
+                <button
+                  onClick={() => setUploadMethod('upload')}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
+                    uploadMethod === 'upload'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  onClick={() => setUploadMethod('filepath')}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
+                    uploadMethod === 'filepath'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  File Path
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {uploadMethod === 'upload' ? (
+                  <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+                    <input
+                      type="file"
+                      id="dataset-upload"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      accept=".csv,.json,.txt,.parquet"
+                    />
+                    <label htmlFor="dataset-upload" className="cursor-pointer">
+                      <FileText className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+                      <p className="text-lg mb-2">
+                        {selectedFile ? selectedFile.name : 'Click to upload dataset'}
                       </p>
+                      <p className="text-sm text-slate-400">
+                        Supports CSV, JSON, TXT, Parquet files
+                      </p>
+                    </label>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-slate-300">
+                      Dataset File Path
+                    </label>
+                    <input
+                      type="text"
+                      value={datasetFilePath}
+                      onChange={(e) => setDatasetFilePath(e.target.value)}
+                      placeholder="e.g., /path/to/dataset.csv or s3://bucket/dataset.csv"
+                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                )}
+
+                <button
+                  onClick={handleTrain}
+                  disabled={(!selectedFile && !datasetFilePath) || isTraining}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+                >
+                  {isTraining ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Training in Enclave...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-5 h-5 mr-2" />
+                      Train Model in Secure Enclave
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Training Response */}
+            {trainingResponse && (
+              <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded-xl p-6 shadow-xl">
+                <h3 className="text-xl font-bold mb-4 flex items-center text-green-400">
+                  <CheckCircle className="w-6 h-6 mr-2" />
+                  Training Complete
+                </h3>
+                <div className="space-y-3">
+                  <div className="bg-slate-800 p-4 rounded-lg">
+                    <div className="flex items-start">
+                      <Hash className="w-5 h-5 mr-2 mt-1 text-blue-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-400 mb-1">Request Hash</p>
+                        <p className="font-mono text-sm break-all">{trainingResponse.requestHash}</p>
+                      </div>
                     </div>
                   </div>
-                  <StatusBadge verified={model.verified} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Model Hash:</span>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">
-                      {model.hash.slice(0, 12)}...
-                    </code>
+                  <div className="bg-slate-800 p-4 rounded-lg">
+                    <div className="flex items-start">
+                      <FileText className="w-5 h-5 mr-2 mt-1 text-purple-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-400 mb-1">Model Weights</p>
+                        <p className="font-mono text-sm break-all">{trainingResponse.modelWeights}</p>
+                      </div>
+                    </div>
                   </div>
-                  {model.blob_id && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Blob ID:</span>
-                      <code className="text-xs bg-muted px-2 py-1 rounded">
-                        {model.blob_id}
-                      </code>
+                  <div className="bg-slate-800 p-4 rounded-lg">
+                    <div className="flex items-start">
+                      <Key className="w-5 h-5 mr-2 mt-1 text-amber-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-400 mb-1">Enclave Signature</p>
+                        <p className="font-mono text-sm break-all">{trainingResponse.signature}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Recent Requests */}
+            {recentRequests.length > 0 && (
+              <div className="bg-slate-800 rounded-xl p-6 shadow-xl">
+                <h3 className="text-xl font-bold mb-4 flex items-center">
+                  <Clock className="w-6 h-6 mr-2 text-blue-400" />
+                  Recent Training Requests
+                </h3>
+                <div className="space-y-3">
+                  {recentRequests.map((request, index) => (
+                    <div key={index} className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="text-sm text-slate-400">Dataset</p>
+                          <p className="font-medium text-white">{request.datasetSource}</p>
+                        </div>
+                        <span className="text-xs text-slate-400">{formatTimestamp(request.timestamp)}</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        <div>
+                          <span className="text-slate-400">Hash: </span>
+                          <span className="font-mono text-xs text-blue-300">{request.requestHash}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Weights: </span>
+                          <span className="font-mono text-xs text-purple-300">{request.modelWeights}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Signature: </span>
+                          <span className="font-mono text-xs text-amber-300">{request.signature}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Verification Tab */}
+        {activeTab === 'verify' && (
+          <div className="space-y-6">
+            <div className="bg-slate-800 rounded-xl p-8 shadow-xl">
+              <h2 className="text-2xl font-bold mb-6 flex items-center">
+                <Shield className="w-6 h-6 mr-2 text-blue-400" />
+                Verify Model Provenance
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-slate-300">
+                    Select Model from Recent Requests
+                  </label>
+                  {recentRequests.length > 0 ? (
+                    <div className="space-y-2">
+                      {recentRequests.map((request, index) => (
+                        <button
+                          key={index}
+                          onClick={() => selectModelForVerification(request)}
+                          className={`w-full text-left p-4 rounded-lg transition-all ${
+                            selectedModel?.requestHash === request.requestHash
+                              ? 'bg-blue-600 border-2 border-blue-400'
+                              : 'bg-slate-700 border-2 border-slate-600 hover:border-slate-500'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium">{request.datasetSource}</span>
+                            <span className="text-xs text-slate-400">{formatTimestamp(request.timestamp)}</span>
+                          </div>
+                          <div className="text-xs font-mono text-slate-300">
+                            {request.modelWeights}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-slate-700 p-6 rounded-lg text-center text-slate-400">
+                      <p>No recent training requests. Train a model first!</p>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Registered:</span>
-                    <span className="text-xs">{formatTimestamp(model.timestamp)}</span>
-                  </div>
-                  <Button variant="outline" className="w-full mt-4">
-                    View Details
-                    <ExternalLink className="h-4 w-4 ml-2" />
-                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+
+                {selectedModel && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-slate-300">
+                      Dataset File Path to Verify
+                    </label>
+                    <input
+                      type="text"
+                      value={verifyDatasetPath}
+                      onChange={(e) => setVerifyDatasetPath(e.target.value)}
+                      placeholder="Enter the dataset path used for training"
+                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-xs text-slate-400 mt-2">
+                      Expected: {selectedModel.datasetSource}
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleVerify}
+                  disabled={!verifyDatasetPath || !selectedModel || isVerifying}
+                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+                >
+                  {isVerifying ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-5 h-5 mr-2" />
+                      Verify Provenance
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Verification Result */}
+            {verificationResult && (
+              <div className={`rounded-xl p-6 shadow-xl border ${
+                verificationResult.isValid
+                  ? 'bg-green-900 bg-opacity-30 border-green-600'
+                  : 'bg-red-900 bg-opacity-30 border-red-600'
+              }`}>
+                <div className="flex items-start">
+                  {verificationResult.isValid ? (
+                    <CheckCircle className="w-8 h-8 mr-3 text-green-400 flex-shrink-0" />
+                  ) : (
+                    <XCircle className="w-8 h-8 mr-3 text-red-400 flex-shrink-0" />
+                  )}
+                  <div className="flex-1">
+                    <h3 className={`text-xl font-bold mb-2 ${
+                      verificationResult.isValid ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {verificationResult.isValid ? 'Verification Passed' : 'Verification Failed'}
+                    </h3>
+                    <p className="text-slate-300 mb-3">{verificationResult.message}</p>
+                    <div className="bg-slate-800 p-3 rounded-lg">
+                      <p className="text-sm text-slate-400 mb-1">Request Hash</p>
+                      <p className="font-mono text-sm">{verificationResult.requestHash}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
