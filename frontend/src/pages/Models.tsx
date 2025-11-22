@@ -392,6 +392,36 @@ export default function ModelProvenanceUI() {
               </h2>
               
               <div className="space-y-4">
+
+                {/* Verification Result */}
+                {verificationResult && (
+                  <div className={`rounded-xl p-6 shadow-xl border ${
+                    verificationResult.isValid
+                      ? 'bg-green-900 bg-opacity-30 border-green-600'
+                      : 'bg-red-900 bg-opacity-30 border-red-600'
+                  }`}>
+                    <div className="flex items-start">
+                      {verificationResult.isValid ? (
+                        <CheckCircle className="w-8 h-8 mr-3 text-green-400 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="w-8 h-8 mr-3 text-red-400 flex-shrink-0" />
+                      )}
+                      <div className="flex-1">
+                        <h3 className={`text-xl font-bold mb-2 ${
+                          verificationResult.isValid ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {verificationResult.isValid ? 'Verification Passed' : 'Verification Failed'}
+                        </h3>
+                        <p className="text-slate-300 mb-3">{verificationResult.message}</p>
+                        {/* <div className="bg-slate-800 p-3 rounded-lg"> */}
+                          {/* <p className="text-sm text-slate-400 mb-1">Request Hash</p>
+                          <p className="font-mono text-sm">{verificationResult.requestHash}</p> */}
+                        {/* </div> */}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Dataset Input Method Selection */}
                 <div className="flex gap-4 mb-2">
                   <button
@@ -535,34 +565,6 @@ export default function ModelProvenanceUI() {
               </div>
             </div>
 
-            {/* Verification Result */}
-            {verificationResult && (
-              <div className={`rounded-xl p-6 shadow-xl border ${
-                verificationResult.isValid
-                  ? 'bg-green-900 bg-opacity-30 border-green-600'
-                  : 'bg-red-900 bg-opacity-30 border-red-600'
-              }`}>
-                <div className="flex items-start">
-                  {verificationResult.isValid ? (
-                    <CheckCircle className="w-8 h-8 mr-3 text-green-400 flex-shrink-0" />
-                  ) : (
-                    <XCircle className="w-8 h-8 mr-3 text-red-400 flex-shrink-0" />
-                  )}
-                  <div className="flex-1">
-                    <h3 className={`text-xl font-bold mb-2 ${
-                      verificationResult.isValid ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {verificationResult.isValid ? 'Verification Passed' : 'Verification Failed'}
-                    </h3>
-                    <p className="text-slate-300 mb-3">{verificationResult.message}</p>
-                    <div className="bg-slate-800 p-3 rounded-lg">
-                      <p className="text-sm text-slate-400 mb-1">Request Hash</p>
-                      <p className="font-mono text-sm">{verificationResult.requestHash}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

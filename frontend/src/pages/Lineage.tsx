@@ -515,12 +515,12 @@ export default function LineageGraph() {
                   <p className="text-sm font-medium text-blue-300">{selectedNode.dataset}</p>
                 </div>
               )}
-              {selectedNode.hash && (
+              {/* {selectedNode.hash && (
                 <div>
                   <p className="text-xs text-slate-400 mb-1">Request Hash</p>
                   <p className="text-xs font-mono bg-slate-900 p-2 rounded break-all">{selectedNode.hash}</p>
                 </div>
-              )}
+              )} */}
               {selectedNode.signature && (
                 <div>
                   <p className="text-xs text-slate-400 mb-1">Signature</p>
