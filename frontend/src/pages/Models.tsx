@@ -13,9 +13,12 @@ export default function ModelProvenanceUI() {
   
   // Verification state
   const [verifyDatasetPath, setVerifyDatasetPath] = useState('');
+  const [verifyDatasetFile, setVerifyDatasetFile] = useState(null);
+  const [verifyMethod, setVerifyMethod] = useState('filepath'); // 'filepath' or 'upload'
   const [selectedModel, setSelectedModel] = useState(null);
   const [verificationResult, setVerificationResult] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyCurrentPage, setVerifyCurrentPage] = useState(1);
 
   // Recent training requests
   const [recentRequests, setRecentRequests] = useState([]);
@@ -93,23 +96,38 @@ export default function ModelProvenanceUI() {
     }
   };
 
+  const handleVerifyFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVerifyDatasetFile(file);
+    }
+  };
+
   const handleVerify = async () => {
-    if (!verifyDatasetPath || !selectedModel) {
-      alert('Please provide dataset path and select a model from recent requests');
+    const hasDataset = verifyMethod === 'upload' ? verifyDatasetFile : verifyDatasetPath;
+    
+    if (!hasDataset || !selectedModel) {
+      alert('Please provide dataset and select a model from recent requests');
       return;
     }
 
     setIsVerifying(true);
     
     try {
+      const formData = new FormData();
+      
+      if (verifyMethod === 'upload' && verifyDatasetFile) {
+        formData.append('dataset', verifyDatasetFile);
+      } else {
+        formData.append('datasetPath', verifyDatasetPath);
+      }
+      
+      formData.append('requestHash', selectedModel.requestHash);
+      
       // Call backend verification API
       const response = await fetch('http://127.0.0.1:8000/api/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          datasetPath: verifyDatasetPath,
-          requestHash: selectedModel.requestHash
-        })
+        body: formData
       });
       
       if (!response.ok) {
@@ -134,8 +152,9 @@ export default function ModelProvenanceUI() {
 
   const selectModelForVerification = (model) => {
     setSelectedModel(model);
-    setVerifyDatasetPath(''); // Clear previous input
-    setVerificationResult(null); // Clear previous result
+    setVerifyDatasetPath('');
+    setVerifyDatasetFile(null);
+    setVerificationResult(null);
   };
 
   const formatTimestamp = (timestamp) => {
@@ -213,7 +232,7 @@ export default function ModelProvenanceUI() {
 
               <div className="space-y-4">
                 {uploadMethod === 'upload' ? (
-                  <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+                  <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
                     <input
                       type="file"
                       id="dataset-upload"
@@ -222,11 +241,11 @@ export default function ModelProvenanceUI() {
                       accept=".csv,.json,.txt,.parquet"
                     />
                     <label htmlFor="dataset-upload" className="cursor-pointer">
-                      <FileText className="w-12 h-12 mx-auto mb-3 text-slate-400" />
-                      <p className="text-lg mb-2">
+                      <FileText className="w-10 h-10 mx-auto mb-2 text-slate-400" />
+                      <p className="text-base mb-1">
                         {selectedFile ? selectedFile.name : 'Click to upload dataset'}
                       </p>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-xs text-slate-400">
                         Supports CSV, JSON, TXT, Parquet files
                       </p>
                     </label>
@@ -373,17 +392,62 @@ export default function ModelProvenanceUI() {
               </h2>
               
               <div className="space-y-4">
+                {/* Dataset Input Method Selection */}
+                <div className="flex gap-4 mb-2">
+                  <button
+                    onClick={() => setVerifyMethod('filepath')}
+                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
+                      verifyMethod === 'filepath'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    File Path
+                  </button>
+                  <button
+                    onClick={() => setVerifyMethod('upload')}
+                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
+                      verifyMethod === 'upload'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    Upload File
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-2 text-slate-300">
-                    Dataset File Path to Verify
+                    Dataset to Verify
                   </label>
-                  <input
-                    type="text"
-                    value={verifyDatasetPath}
-                    onChange={(e) => setVerifyDatasetPath(e.target.value)}
-                    placeholder="Enter the dataset path used for training"
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-                  />
+                  {verifyMethod === 'upload' ? (
+                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-purple-500 transition-colors">
+                      <input
+                        type="file"
+                        id="verify-dataset-upload"
+                        onChange={handleVerifyFileSelect}
+                        className="hidden"
+                        accept=".csv,.json,.txt,.parquet"
+                      />
+                      <label htmlFor="verify-dataset-upload" className="cursor-pointer">
+                        <FileText className="w-10 h-10 mx-auto mb-2 text-slate-400" />
+                        <p className="text-base mb-1">
+                          {verifyDatasetFile ? verifyDatasetFile.name : 'Click to upload dataset'}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Supports CSV, JSON, TXT, Parquet files
+                        </p>
+                      </label>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={verifyDatasetPath}
+                      onChange={(e) => setVerifyDatasetPath(e.target.value)}
+                      placeholder="Enter the dataset path used for training"
+                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-purple-500"
+                    />
+                  )}
                   {selectedModel && (
                     <p className="text-xs text-slate-400 mt-2">
                       Expected: {selectedModel.datasetSource}
@@ -391,42 +455,9 @@ export default function ModelProvenanceUI() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-slate-300">
-                    Select Model from Recent Requests
-                  </label>
-                  {recentRequests.length > 0 ? (
-                    <div className="space-y-2">
-                      {recentRequests.map((request, index) => (
-                        <button
-                          key={index}
-                          onClick={() => selectModelForVerification(request)}
-                          className={`w-full text-left p-4 rounded-lg transition-all ${
-                            selectedModel?.requestHash === request.requestHash
-                              ? 'bg-blue-600 border-2 border-blue-400'
-                              : 'bg-slate-700 border-2 border-slate-600 hover:border-slate-500'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            {/* <span className="font-medium">{request.datasetSource}</span> */}
-                            <span className="text-xs text-slate-400">{formatTimestamp(request.timestamp)}</span>
-                          </div>
-                          <div className="text-xs font-mono text-slate-300">
-                            {request.modelWeights}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-slate-700 p-6 rounded-lg text-center text-slate-400">
-                      <p>No recent training requests. Train a model first!</p>
-                    </div>
-                  )}
-                </div>
-
                 <button
                   onClick={handleVerify}
-                  disabled={!verifyDatasetPath || !selectedModel || isVerifying}
+                  disabled={(!verifyDatasetPath && !verifyDatasetFile) || !selectedModel || isVerifying}
                   className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
                 >
                   {isVerifying ? (
@@ -441,6 +472,66 @@ export default function ModelProvenanceUI() {
                     </>
                   )}
                 </button>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-slate-300">
+                    Select Model from Recent Requests
+                  </label>
+                  {recentRequests.length > 0 ? (
+                    <>
+                      <div className="space-y-2">
+                        {recentRequests.slice((verifyCurrentPage - 1) * itemsPerPage, verifyCurrentPage * itemsPerPage).map((request, index) => (
+                          <button
+                            key={index}
+                            onClick={() => selectModelForVerification(request)}
+                            className={`w-full text-left p-4 rounded-lg transition-all ${
+                              selectedModel?.requestHash === request.requestHash
+                                ? 'bg-purple-600 border-2 border-purple-400'
+                                : 'bg-slate-700 border-2 border-slate-600 hover:border-slate-500'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-medium">{request.datasetSource}</span>
+                              <span className="text-xs text-slate-400">{formatTimestamp(request.timestamp)}</span>
+                            </div>
+                            <div className="text-xs font-mono text-slate-300">
+                              {request.modelWeights}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* Pagination for Verify */}
+                      {recentRequests.length > itemsPerPage && (
+                        <div className="flex items-center justify-center gap-2 mt-4">
+                          <button
+                            onClick={() => setVerifyCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={verifyCurrentPage === 1}
+                            className="px-3 py-1 rounded bg-slate-700 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-slate-400 text-sm">
+                            Page {verifyCurrentPage} of {Math.ceil(recentRequests.length / itemsPerPage)}
+                          </span>
+                          <button
+                            onClick={() => setVerifyCurrentPage(prev => Math.min(Math.ceil(recentRequests.length / itemsPerPage), prev + 1))}
+                            disabled={verifyCurrentPage === Math.ceil(recentRequests.length / itemsPerPage)}
+                            className="px-3 py-1 rounded bg-slate-700 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="bg-slate-700 p-6 rounded-lg text-center text-slate-400">
+                      <p>No recent training requests. Train a model first!</p>
+                    </div>
+                  )}
+                </div>
+
+                
               </div>
             </div>
 
