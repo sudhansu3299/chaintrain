@@ -80,7 +80,6 @@ async def download_dataset(blob_id: str):
 
 
 # ------------------- spt ----------------------------
-
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -322,27 +321,41 @@ async def train_model(
         raise HTTPException(status_code=500, detail=f"Training failed: {str(e)}")
 
 @app.post("/api/verify")
-async def verify_model(verify_request: VerifyRequest):
+async def verify_model(
+    requestHash: str = Form(...),
+    dataset: Optional[UploadFile] = File(None),
+    datasetPath: Optional[str] = Form(None)
+):
     """
     Verify if a model was trained with a specific dataset
+    Accepts either file upload or file path
     """
-    print(f"Verification request - Dataset: {verify_request.datasetPath}, Hash: {verify_request.requestHash}")
+    print(f"Verification request - Request Hash: {requestHash}")
     
     try:
-        dataset_path = verify_request.datasetPath
-        request_hash = verify_request.requestHash
+        # Determine dataset path
+        if dataset and dataset.filename:
+            print(f"Processing uploaded file for verification: {dataset.filename}")
+            # Save uploaded file temporarily
+            dataset_path = await upload_dataset(dataset)
+            print(f"Verification file saved to: {dataset_path}")
+        elif datasetPath:
+            print(f"Using provided path for verification: {datasetPath}")
+            dataset_path = datasetPath
+        else:
+            raise HTTPException(status_code=400, detail="No dataset provided")
         
         # Check if we have this training record
-        if request_hash not in training_history:
-            print(f"No training record found for hash: {request_hash}")
+        if requestHash not in training_history:
+            print(f"No training record found for hash: {requestHash}")
             return {
                 'isValid': False,
-                'requestHash': request_hash,
+                'requestHash': requestHash,
                 'message': "No training record found for this model"
             }
         
         # Get the training record
-        training_record = training_history[request_hash]
+        training_record = training_history[requestHash]
         print(f"Found training record: {training_record['dataset_source']}")
         
         # Compute hash of provided dataset
@@ -368,11 +381,11 @@ async def verify_model(verify_request: VerifyRequest):
         
         return {
             'isValid': is_valid,
-            'requestHash': request_hash,
+            'requestHash': requestHash,
             'message': message,
             'details': {
                 'expected_dataset': training_record['dataset_source'],
-                'provided_dataset': dataset_path,
+                'provided_dataset': dataset.filename if dataset else dataset_path,
                 'hash_match': is_valid,
                 'path_match': path_matches
             }
@@ -449,10 +462,6 @@ async def download_dataset(blob_id: str):
         print("Error {}", e)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 # ------------------- spt ----------------------------
 
