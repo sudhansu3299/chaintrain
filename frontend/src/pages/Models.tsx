@@ -19,6 +19,29 @@ export default function ModelProvenanceUI() {
 
   // Recent training requests
   const [recentRequests, setRecentRequests] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const itemsPerPage = 10;
+
+  // Load training history on mount
+  React.useEffect(() => {
+    fetchTrainingHistory();
+  }, []);
+
+  const fetchTrainingHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/training-history');
+      if (response.ok) {
+        const data = await response.json();
+        setRecentRequests(data.history || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch training history:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -59,8 +82,8 @@ export default function ModelProvenanceUI() {
       
       setTrainingResponse(data);
       
-      // Add to recent requests
-      setRecentRequests(prev => [data, ...prev].slice(0, 10)); // Keep last 10
+      // Refresh training history from backend
+      await fetchTrainingHistory();
       
     } catch (error) {
       console.error('Training error:', error);
@@ -253,15 +276,6 @@ export default function ModelProvenanceUI() {
                 <div className="space-y-3">
                   <div className="bg-slate-800 p-4 rounded-lg">
                     <div className="flex items-start">
-                      <Hash className="w-5 h-5 mr-2 mt-1 text-blue-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-400 mb-1">Request Hash</p>
-                        <p className="font-mono text-sm break-all">{trainingResponse.requestHash}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-slate-800 p-4 rounded-lg">
-                    <div className="flex items-start">
                       <FileText className="w-5 h-5 mr-2 mt-1 text-purple-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-slate-400 mb-1">Model Weights</p>
@@ -289,33 +303,61 @@ export default function ModelProvenanceUI() {
                   <Clock className="w-6 h-6 mr-2 text-blue-400" />
                   Recent Training Requests
                 </h3>
-                <div className="space-y-3">
-                  {recentRequests.map((request, index) => (
-                    <div key={index} className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm text-slate-400">Dataset</p>
-                          <p className="font-medium text-white">{request.datasetSource}</p>
+                {isLoadingHistory ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto"></div>
+                    <p className="text-slate-400 mt-2">Loading history...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {recentRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((request, index) => (
+                        <div key={index} className="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="text-sm text-slate-400">Dataset</p>
+                              <p className="font-medium text-white">{request.datasetSource}</p>
+                            </div>
+                            <span className="text-xs text-slate-400">{formatTimestamp(request.timestamp)}</span>
+                          </div>
+                          <div className="grid grid-cols-1 gap-2 text-sm">
+                            <div>
+                              <span className="text-slate-400">Weights: </span>
+                              <span className="font-mono text-xs text-purple-300">{request.modelWeights}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400">Signature: </span>
+                              <span className="font-mono text-xs text-amber-300">{request.signature}</span>
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-xs text-slate-400">{formatTimestamp(request.timestamp)}</span>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 text-sm">
-                        <div>
-                          <span className="text-slate-400">Hash: </span>
-                          <span className="font-mono text-xs text-blue-300">{request.requestHash}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Weights: </span>
-                          <span className="font-mono text-xs text-purple-300">{request.modelWeights}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Signature: </span>
-                          <span className="font-mono text-xs text-amber-300">{request.signature}</span>
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                    
+                    {/* Pagination */}
+                    {recentRequests.length > itemsPerPage && (
+                      <div className="flex items-center justify-center gap-2 mt-4">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 rounded bg-slate-700 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+                        >
+                          Previous
+                        </button>
+                        <span className="text-slate-400 text-sm">
+                          Page {currentPage} of {Math.ceil(recentRequests.length / itemsPerPage)}
+                        </span>
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(Math.ceil(recentRequests.length / itemsPerPage), prev + 1))}
+                          disabled={currentPage === Math.ceil(recentRequests.length / itemsPerPage)}
+                          className="px-3 py-1 rounded bg-slate-700 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -333,6 +375,24 @@ export default function ModelProvenanceUI() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2 text-slate-300">
+                    Dataset File Path to Verify
+                  </label>
+                  <input
+                    type="text"
+                    value={verifyDatasetPath}
+                    onChange={(e) => setVerifyDatasetPath(e.target.value)}
+                    placeholder="Enter the dataset path used for training"
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                  />
+                  {selectedModel && (
+                    <p className="text-xs text-slate-400 mt-2">
+                      Expected: {selectedModel.datasetSource}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-slate-300">
                     Select Model from Recent Requests
                   </label>
                   {recentRequests.length > 0 ? (
@@ -348,7 +408,7 @@ export default function ModelProvenanceUI() {
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium">{request.datasetSource}</span>
+                            {/* <span className="font-medium">{request.datasetSource}</span> */}
                             <span className="text-xs text-slate-400">{formatTimestamp(request.timestamp)}</span>
                           </div>
                           <div className="text-xs font-mono text-slate-300">
@@ -363,24 +423,6 @@ export default function ModelProvenanceUI() {
                     </div>
                   )}
                 </div>
-
-                {selectedModel && (
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-slate-300">
-                      Dataset File Path to Verify
-                    </label>
-                    <input
-                      type="text"
-                      value={verifyDatasetPath}
-                      onChange={(e) => setVerifyDatasetPath(e.target.value)}
-                      placeholder="Enter the dataset path used for training"
-                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-                    />
-                    <p className="text-xs text-slate-400 mt-2">
-                      Expected: {selectedModel.datasetSource}
-                    </p>
-                  </div>
-                )}
 
                 <button
                   onClick={handleVerify}
