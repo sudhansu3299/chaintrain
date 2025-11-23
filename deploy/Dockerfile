@@ -2,12 +2,16 @@ FROM python:3.10
 
 WORKDIR /app
 
-# Install backend
-COPY backend/ ./backend
-COPY ../backend/dataset-registry/offchain/config.py ./config.py
+# Copy backend directory (recursive)
+COPY backend ./backend
+
+# Copy config.py into root app directory (if needed by import paths)
+COPY backend/dataset-registry/offchain/config.py ./config.py
+
+# Install backend dependencies
 RUN pip install -r backend/dataset-registry/offchain/requirements.txt
 
-# Install frontend (build artifacts only)
+# Copy frontend build
 COPY frontend/dist ./frontend/dist
 
 # Start script

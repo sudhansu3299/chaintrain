@@ -44,23 +44,23 @@ def process_dataset(path: str):
     merkle_root_hex = root.hex()
 
     # 3. zk-Proof
-    zk = Nautilus()
-    zk_proof = zk.generate_dummy_proof(root, blob_id)
+    # zk = Nautilus()
+    # zk_proof = zk.generate_dummy_proof(root, blob_id)
 
-    print("zk_proof: ", zk_proof)
+    # print("zk_proof: ", zk_proof)
 
-    # 4. Register to Sui
-    tx_digest = register_dataset(
-        dataset_id,
-        blob_id,
-        root,
-        zk_proof
-    )
+    # # 4. Register to Sui
+    # tx_digest = register_dataset(
+    #     dataset_id,
+    #     blob_id,
+    #     root,
+    #     zk_proof
+    # )
 
-    print("tx_digest generated is: ",tx_digest)
+    # print("tx_digest generated is: ",tx_digest)
 
     return {
-        'tx_digest': tx_digest,
+        # 'tx_digest': tx_digest,
         'dataset_id': dataset_id.hex(),
         'blob_info': blob_info,
         'merkle_root': merkle_root_hex,

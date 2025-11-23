@@ -108,59 +108,59 @@ export default function UploadDataset() {
       const result = await response.json();
       console.log("Result received from backend: ", result)
 
-      // if (result.success) {
-      //   setCurrentStep("complete");
-      //   setProgress(100);
+      if (result.success) {
+        setCurrentStep("complete");
+        setProgress(100);
         
-      //   const uploadResultData: UploadResult = {
-      //     tx: result.tx || "",
-      //     dataset_id: result.dataset_id,
-      //     blob_id: result.blob_id,
-      //     blob_object_id: result.blob_object_id,
-      //     merkle_root: result.merkle_root || "",
-      //     chunks: result.chunks || 0,
-      //     file_size: result.file_size,
-      //     storage: result.storage,
-      //     registered_epoch: result.registered_epoch,
-      //     encoding_type: result.encoding_type,
-      //     cost: result.cost,
-      //     encoded_length: result.encoded_length,
-      //   };
+        const uploadResultData: UploadResult = {
+          tx: result.tx || "",
+          dataset_id: result.dataset_id,
+          blob_id: result.blob_id,
+          blob_object_id: result.blob_object_id,
+          merkle_root: result.merkle_root || "",
+          chunks: result.chunks || 0,
+          file_size: result.file_size,
+          storage: result.storage,
+          registered_epoch: result.registered_epoch,
+          encoding_type: result.encoding_type,
+          cost: result.cost,
+          encoded_length: result.encoded_length,
+        };
         
-      //   setUploadResult(uploadResultData);
+        setUploadResult(uploadResultData);
         
-      //   // Create Dataset object and save to localStorage
-      //   const dataset: Dataset = {
-      //     id: result.dataset_id,
-      //     blob_id: result.blob_id,
-      //     merkle_root: result.merkle_root || `0x${result.dataset_id}`,
-      //     name: datasetName || fileName.split(".")[0] || "Untitled Dataset",
-      //     size: result.file_size,
-      //     chunks: result.chunks || Math.ceil(result.file_size / (1024 * 1024)), // Estimate chunks if not provided
-      //     verified: true, // Mark as verified since upload succeeded
-      //     timestamp: Date.now(),
-      //     filename: result.filename
-      //   };
+        // Create Dataset object and save to localStorage
+        const dataset: Dataset = {
+          id: result.dataset_id,
+          blob_id: result.blob_id,
+          merkle_root: result.merkle_root || `0x${result.dataset_id}`,
+          name: datasetName || fileName.split(".")[0] || "Untitled Dataset",
+          size: result.file_size,
+          chunks: result.chunks || Math.ceil(result.file_size / (1024 * 1024)), // Estimate chunks if not provided
+          verified: true, // Mark as verified since upload succeeded
+          timestamp: Date.now(),
+          filename: result.filename
+        };
         
-      //   // Save to localStorage
-      //   addUploadedDataset(dataset);
+        // Save to localStorage
+        addUploadedDataset(dataset);
         
-      //   // Invalidate and refetch datasets query to update the list
-      //   queryClient.invalidateQueries({ queryKey: ["datasets"] });
+        // Invalidate and refetch datasets query to update the list
+        queryClient.invalidateQueries({ queryKey: ["datasets"] });
         
-      //   toast({
-      //     title: "Upload Complete!",
-      //     description: `Your dataset has been successfully uploaded and verified.`,
-      //   });
-      // } else {
-      //   setCurrentStep("idle");
-      //   setProgress(0);
-      //   toast({
-      //     title: "Upload Failed",
-      //     description: result.error || "An error occurred during upload.",
-      //     variant: "destructive",
-      //   });
-      // }
+        toast({
+          title: "Upload Complete!",
+          description: `Your dataset has been successfully uploaded and verified.`,
+        });
+      } else {
+        setCurrentStep("idle");
+        setProgress(0);
+        toast({
+          title: "Upload Failed",
+          description: result.error || "An error occurred during upload.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       setCurrentStep("idle");
       setProgress(0);
