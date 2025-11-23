@@ -6,10 +6,10 @@ WORKDIR /app
 COPY backend ./backend
 
 # Copy config.py into root app directory (if needed by import paths)
-COPY backend/dataset-registry/offchain/config.py ./config.py
+COPY backend/dataset_registry/offchain/config.py ./config.py
 
 # Install backend dependencies
-RUN pip install -r backend/dataset-registry/offchain/requirements.txt
+RUN pip install -r backend/dataset_registry/offchain/requirements.txt
 
 # Copy frontend build
 COPY frontend/dist ./frontend/dist
