@@ -508,12 +508,12 @@ export default function ModelProvenanceUI() {
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-sm">{request.datasetSource}</span>
+                            <span className="font-medium text-sm">{request.modelWeights}</span>
                             <span className="text-xs text-muted-foreground">{formatTimestamp(request.timestamp)}</span>
                           </div>
-                          <div className="text-xs font-mono text-muted-foreground">
+                          {/* <div className="text-xs font-mono text-muted-foreground">
                             {request.modelWeights}
-                          </div>
+                          </div> */}
                         </button>
                       ))}
                     </div>
