@@ -1,5 +1,5 @@
 import json
-from config import SUI_PACKAGE_ID
+from .config import SUI_PACKAGE_ID
 from pysui import SuiConfig, SyncClient
 from pysui.sui.sui_txn.transaction_builder import ProgrammableTransactionBuilder
 

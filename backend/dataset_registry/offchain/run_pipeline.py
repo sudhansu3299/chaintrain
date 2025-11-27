@@ -1,7 +1,7 @@
-from walrus_upload import upload_to_walrus
-from merkle import chunk_file, build_merkle
-from nautilus_proof import Nautilus
-from register_to_sui import register_dataset
+from .walrus_upload import upload_to_walrus
+from .merkle import chunk_file, build_merkle
+from .nautilus_proof import Nautilus
+from .register_to_sui import register_dataset
 import uuid
 import os
 
