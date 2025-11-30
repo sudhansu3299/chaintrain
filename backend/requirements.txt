@@ -4,6 +4,5 @@ uvicorn[standard]>=0.22
 python-multipart>=0.0.6
 walrus-python>=0.1.0
 python-magic
-pysui==0.89.0
-betterproto2==0.8.0
+pysui>=1.0.0
 

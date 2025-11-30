@@ -1,9 +1,6 @@
 import requests
 from fastapi.responses import FileResponse
 from walrus import WalrusClient
-import os
-import re
-import urllib.parse
 import mimetypes
 import magic
 
