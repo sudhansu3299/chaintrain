@@ -21,7 +21,7 @@ export function Layout({ children }: LayoutProps) {
                 <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
                   <span className="text-lg font-bold text-primary-foreground">V</span>
                 </div>
-                <h1 className="text-xl font-bold gradient-text hidden md:block">Verifiable AI System</h1>
+                <h1 className="text-xl font-bold gradient-text hidden md:block">ChainTrain</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
