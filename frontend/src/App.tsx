@@ -37,8 +37,8 @@ const App = () => (
                 <Route path="/datasets/:id" element={<DatasetDetail />} />
                 <Route path="/models" element={<Models />} />
                 <Route path="/models/:id" element={<ModelDetail />} />
-                <Route path="/proofs" element={<Proofs />} />
-                <Route path="/proofs/:id" element={<ProofDetail />} />
+{/*                <Route path="/proofs" element={<Proofs />} />
+                <Route path="/proofs/:id" element={<ProofDetail />} /> */}
                 <Route path="/lineage" element={<Lineage />} />
                 <Route path="/governance" element={<Governance />} />
                 <Route path="/about" element={<About />} />
