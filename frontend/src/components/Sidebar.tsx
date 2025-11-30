@@ -26,7 +26,7 @@ const navItems = [
   { title: "Upload Dataset", url: "/upload", icon: Upload },
   { title: "Datasets", url: "/datasets", icon: Database },
   { title: "Models", url: "/models", icon: Brain },
-  { title: "Proofs", url: "/proofs", icon: Shield },
+//   { title: "Proofs", url: "/proofs", icon: Shield },
   { title: "Lineage", url: "/lineage", icon: GitBranch },
   { title: "Governance", url: "/governance", icon: FileCheck },
   { title: "About", url: "/about", icon: Info },
