@@ -27,7 +27,7 @@ export default function DatasetDetail() {
     // const blobId = "dyTuyMWuRFppX812a6n1ccCtnhhO2wgq51n2UYTZ4IY"; // replace or pass dynamically
 
     const res = await fetch(
-      `http://127.0.0.1:8000/download-dataset?blob_id=${blobId}`
+      `${BACKEND_URL}/download-dataset?blob_id=${blobId}`
     );
 
     if (!res.ok) {

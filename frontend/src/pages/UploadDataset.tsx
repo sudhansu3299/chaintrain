@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatBytes, addUploadedDataset } from "@/lib/api";
 import { Dataset } from "@/lib/sui";
 import { useQueryClient } from "@tanstack/react-query";
+import {BACKEND_URL} from "@/config"
 
 type UploadStep = "idle" | "chunking" | "uploading" | "merkle" | "proof" | "registering" | "complete";
 
@@ -97,7 +98,7 @@ export default function UploadDataset() {
       }, 2000);
 
       // Make the actual API call to backend
-      const response = await fetch("http://127.0.0.1:8000/upload-dataset", {
+      const response = await fetch(`${BACKEND_URL}/upload-dataset`, {
         method: "POST",
         body: formData,
       });

@@ -1,9 +1,18 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import tempfile
 from .run_pipeline import process_dataset
 from .walrus_upload import download_dataset_walrus
+from pydantic import BaseModel
+from typing import Optional
+import hashlib
+import requests
+import os
+import json
+from datetime import datetime
+from pathlib import Path
+import traceback
 
 app = FastAPI()
 
@@ -76,30 +85,6 @@ async def download_dataset(blob_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ------------------- spt ----------------------------
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
-import hashlib
-import requests
-import os
-import json
-from datetime import datetime
-from pathlib import Path
-import traceback
-
-app = FastAPI()
-
-# CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Configuration
 ENCLAVE_URL = "http://16.170.234.164:3000/process_data"
 UPLOAD_FOLDER = './uploads'
@@ -158,23 +143,23 @@ class VerificationResponse(BaseModel):
 def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-async def upload_dataset(file: UploadFile) -> str:
+async def upload_dataset_to_train(file: UploadFile) -> str:
     """
     Handle file upload and return the file path
     """
     if not allowed_file(file.filename):
         raise ValueError(f"Invalid file type. Allowed: {ALLOWED_EXTENSIONS}")
-    
+
     # Add timestamp to avoid collisions
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"{timestamp}_{file.filename}"
     filepath = os.path.join(UPLOAD_FOLDER, filename)
-    
+
     # Save file
     content = await file.read()
     with open(filepath, 'wb') as f:
         f.write(content)
-    
+
     return filepath
 
 def compute_dataset_hash(dataset_path: str) -> str:
@@ -184,7 +169,7 @@ def compute_dataset_hash(dataset_path: str) -> str:
     # Check if we already have this hash cached
     if dataset_path in dataset_cache:
         return dataset_cache[dataset_path]
-    
+
     try:
         # Read the file and compute hash
         with open(dataset_path, 'rb') as f:
@@ -213,15 +198,15 @@ def call_enclave(dataset_path: str) -> dict:
     except FileNotFoundError:
         # If we can't read the file, use the path itself
         input_data = dataset_path
-    
+
     payload = {
         "payload": {
             "input_data": input_data
         }
     }
-    
+
     headers = {'Content-Type': 'application/json'}
-    
+
     try:
         response = requests.post(ENCLAVE_URL, json=payload, headers=headers, timeout=30)
         response.raise_for_status()
@@ -241,47 +226,47 @@ async def train_model(
     print("Training request received")
     print(f"Dataset file: {dataset.filename if dataset else 'None'}")
     print(f"Dataset path: {datasetPath}")
-    
+
     try:
         dataset_path = None
         dataset_source = None
-        
+
         # Check if file was uploaded
         if dataset and dataset.filename:
             print(f"Processing uploaded file: {dataset.filename}")
             # Upload the file and get path
-            dataset_path = await upload_dataset(dataset)
+            dataset_path = await upload_dataset_to_train(dataset)
             dataset_source = dataset.filename
             print(f"File saved to: {dataset_path}")
-            
+
         # Check if file path was provided
         elif datasetPath:
             print(f"Using provided path: {datasetPath}")
             dataset_path = datasetPath
             dataset_source = datasetPath
-            
+
         else:
             raise HTTPException(status_code=400, detail="No dataset provided")
-        
+
         # Compute hash of the dataset for verification
         print("Computing dataset hash...")
         dataset_hash = compute_dataset_hash(dataset_path)
         print(f"Dataset hash: {dataset_hash}")
-        
+
         # Call enclave to train model
         print("Calling enclave...")
         enclave_response = call_enclave(dataset_path)
         print(f"Enclave response: {enclave_response}")
-        
+
         # Extract response data
         response_data = enclave_response.get('response', {}).get('data', {})
         request_hash = response_data.get('request_hash')
         updated_weights = response_data.get('updated_weights', [])
         signature = enclave_response.get('signature')
         timestamp = enclave_response.get('response', {}).get('timestamp_ms')
-        
+
         print(f"Request hash: {request_hash}")
-        
+
         # Store in training history
         training_record = {
             'request_hash': request_hash,
@@ -293,13 +278,13 @@ async def train_model(
             'timestamp': timestamp,
             'timestamp_iso': datetime.fromtimestamp(timestamp/1000).isoformat() if timestamp else datetime.now().isoformat()
         }
-        
+
         training_history[request_hash] = training_record
         print(f"Training record stored. Total records: {len(training_history)}")
-        
+
         # Persist to disk
         save_training_history()
-        
+
         # Return response to frontend
         return {
             'requestHash': request_hash,
@@ -308,7 +293,7 @@ async def train_model(
             'datasetSource': dataset_source,
             'timestamp': training_record['timestamp_iso']
         }
-        
+
     except ValueError as e:
         print(f"Validation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -328,20 +313,20 @@ async def verify_model(
     Accepts either file upload or file path
     """
     print(f"Verification request - Request Hash: {requestHash}")
-    
+
     try:
         # Determine dataset path
         if dataset and dataset.filename:
             print(f"Processing uploaded file for verification: {dataset.filename}")
             # Save uploaded file temporarily
-            dataset_path = await upload_dataset(dataset)
+            dataset_path = await upload_dataset_to_train(dataset)
             print(f"Verification file saved to: {dataset_path}")
         elif datasetPath:
             print(f"Using provided path for verification: {datasetPath}")
             dataset_path = datasetPath
         else:
             raise HTTPException(status_code=400, detail="No dataset provided")
-        
+
         # Check if we have this training record
         if requestHash not in training_history:
             print(f"No training record found for hash: {requestHash}")
@@ -350,32 +335,32 @@ async def verify_model(
                 'requestHash': requestHash,
                 'message': "No training record found for this model"
             }
-        
+
         # Get the training record
         training_record = training_history[requestHash]
         print(f"Found training record: {training_record['dataset_source']}")
-        
+
         # Compute hash of provided dataset
         print("Computing hash of provided dataset...")
         provided_dataset_hash = compute_dataset_hash(dataset_path)
         print(f"Provided hash: {provided_dataset_hash}")
         print(f"Expected hash: {training_record['dataset_hash']}")
-        
+
         # Compare hashes
         is_valid = provided_dataset_hash == training_record['dataset_hash']
-        
+
         # Also check if the paths match (for user-friendly verification)
         path_matches = dataset_path == training_record['dataset_path']
-        
+
         if is_valid:
             message = 'Dataset verified! This model was trained using the specified dataset.'
         elif path_matches:
             message = 'Dataset path matches, but content hash differs. Dataset may have been modified.'
         else:
             message = 'Verification failed. The dataset does not match the training record.'
-        
+
         print(f"Verification result: {is_valid}")
-        
+
         return {
             'isValid': is_valid,
             'requestHash': requestHash,
@@ -387,7 +372,7 @@ async def verify_model(
                 'path_match': path_matches
             }
         }
-        
+
     except Exception as e:
         print(f"Error during verification: {e}")
         traceback.print_exc()
@@ -399,7 +384,7 @@ async def get_training_history():
     Get all training history records
     """
     print(f"Fetching training history. Total records: {len(training_history)}")
-    
+
     try:
         history = []
         for request_hash, record in training_history.items():
@@ -410,12 +395,12 @@ async def get_training_history():
                 'signature': record['signature'],
                 'timestamp': record['timestamp_iso']
             })
-        
+
         # Sort by timestamp, newest first
         history.sort(key=lambda x: x['timestamp'], reverse=True)
-        
+
         return {'history': history}
-        
+
     except Exception as e:
         print(f"Error fetching history: {e}")
         traceback.print_exc()
@@ -444,23 +429,6 @@ async def health_check_alias():
         'enclave_url': ENCLAVE_URL,
         'training_records': len(training_history)
     }
-
-# Example of your existing endpoint style
-@app.get("/download-dataset")
-async def download_dataset(blob_id: str):
-    print("blobId from python server is: ", blob_id)
-    try:
-        # Your existing download logic here
-        # res = download_dataset_walrus(blob_id)
-        # print("res is ", res)
-        # return res
-        return {"message": "Download dataset endpoint", "blob_id": blob_id}
-    except Exception as e:
-        print("Error {}", e)
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ------------------- spt ----------------------------
 
 
 if __name__ == "__main__":

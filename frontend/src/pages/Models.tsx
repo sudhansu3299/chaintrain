@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, CheckCircle, XCircle, Shield, FileText, Key, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import {BACKEND_URL} from "@/config"
 
 export default function ModelProvenanceUI() {
   const [activeTab, setActiveTab] = useState('train');
@@ -33,7 +34,7 @@ export default function ModelProvenanceUI() {
   const fetchTrainingHistory = async () => {
     setIsLoadingHistory(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/training-history');
+      const response = await fetch(`${BACKEND_URL}/api/training-history`);
       if (response.ok) {
         const data = await response.json();
         setRecentRequests(data.history || []);
@@ -70,7 +71,7 @@ export default function ModelProvenanceUI() {
         formData.append('datasetPath', datasetFilePath);
       }
       
-      const response = await fetch('http://127.0.0.1:8000/api/train', {
+      const response = await fetch(`${BACKEND_URL}/api/train`, {
         method: 'POST',
         body: formData
       });
@@ -120,7 +121,7 @@ export default function ModelProvenanceUI() {
       
       formData.append('requestHash', selectedModel.requestHash);
       
-      const response = await fetch('http://127.0.0.1:8000/api/verify', {
+      const response = await fetch(`${BACKEND_URL}/api/verify`, {
         method: 'POST',
         body: formData
       });

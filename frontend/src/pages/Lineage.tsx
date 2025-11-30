@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Database, Activity, Clock, ChevronLeft, ZoomIn, ZoomOut, Maximize2, Archive } from 'lucide-react';
+import {BACKEND_URL} from "@/config"
 
 export default function LineageGraph() {
   const [trainingHistory, setTrainingHistory] = useState([]);
@@ -17,7 +18,7 @@ export default function LineageGraph() {
   const fetchTrainingHistory = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/training-history');
+      const response = await fetch(`${BACKEND_URL}/api/training-history`);
       if (response.ok) {
         const data = await response.json();
         setTrainingHistory(data.history || []);
